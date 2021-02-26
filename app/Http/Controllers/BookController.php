@@ -36,28 +36,31 @@ class BookController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store($isbn)
     {
-        $validated = $request->validate([
-            'isbn' => 'required|numeric|unique:books|min:0',
-        ]);
-        $response = ['response' => '', 'success'=>false];
+        // $validated = $request->validate([
+        //     'isbn' => 'required|numeric|unique:books|min:0',
+        // ]);
+        // $response = ['response' => '', 'success'=>false];
         
-        if ($$validated->fails()) {
-            return response()->json(['status' => 'Error ISBN no valido']);
-        }        
+        // if ($$validated->fails()) {
+        //     return response()->json(['status' => 'Error ISBN no valido']);
+        // }        
 
-
-        $url = "https://openlibrary.org/api/books?bibkeys=ISBN:". $request->isbn ."&amp;jscmd=data&amp;format=json";
+        $url = "https://openlibrary.org/api/books?bibkeys=ISBN:". $isbn ."&amp;jscmd=data&amp;format=json";
         $response = Http::get($url);
-        $datos = $response->json()['ISBN:'.$request->isbn];
+        $datos = $response->json();
+        if (empty($datos)) {
+            return response()->json(['status' => 'ISBN no encontrado']);
+        }
+        $datos = $datos['ISBN:'.$isbn];
         $imagen = NULL;
         if (array_key_exists('cover', $datos)) {
             $imagen = $datos['cover']['large'];
         } 
          
         $book = new Book;
-        $book->isbn = $request->isbn;
+        $book->isbn = $isbn;
         $book->titulo = $datos['title'];
         $book->cover = $imagen;
         $book->save();
@@ -67,7 +70,7 @@ class BookController extends Controller
         };
         $book->authors()->createMany($autores);
         // return redirect()->route('index')->with('success','Guardado');
-        return response()->json(['status' => 'guardado']);
+        return response()->json(['status' => 'Exito']);
     }
 
     /**
@@ -78,8 +81,11 @@ class BookController extends Controller
      */
     public function show( $isbn)
     {
-        
-            return Book::where('isbn',$isbn)->first();
+        $book = Book::where('isbn',$isbn)->first();
+        if (empty($book)) {
+            return response()->json(['status' => 'ISBN no encontrado']);
+        }
+            return $book;
         
     }
 
@@ -89,11 +95,10 @@ class BookController extends Controller
         $book = Book::where('isbn',$isbn)->first();
         if ($book->count()) {
             $book->delete();
-            return back()->with('success', 'Eliminado');
+            return response()->json(['status' => 'Exito']);
         } else {
            return response()->json(['error' => 'isbn no encontrado']);
         }
         
-        return true;
     }
 }
