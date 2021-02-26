@@ -16,7 +16,8 @@ class BookController extends Controller
     public function index()
     {
         $libros = Book::paginate(3);
-        return view('home',compact('libros'));
+        // return view('home',compact('libros'));
+        return $libros;
     }
 
     /**
@@ -40,6 +41,12 @@ class BookController extends Controller
         $validated = $request->validate([
             'isbn' => 'required|numeric|unique:books|min:0',
         ]);
+        $response = ['response' => '', 'success'=>false];
+        
+        if ($$validated->fails()) {
+            return response()->json(['status' => 'Error ISBN no valido']);
+        }        
+
 
         $url = "https://openlibrary.org/api/books?bibkeys=ISBN:". $request->isbn ."&amp;jscmd=data&amp;format=json";
         $response = Http::get($url);
@@ -59,7 +66,8 @@ class BookController extends Controller
             $autores[] = ['nombre' => $value['name']];
         };
         $book->authors()->createMany($autores);
-         return redirect()->route('index')->with('success','Guardado');
+        // return redirect()->route('index')->with('success','Guardado');
+        return response()->json(['status' => 'guardado']);
     }
 
     /**
